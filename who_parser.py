@@ -140,28 +140,28 @@ class MainWindow(QMainWindow):
 
         self.directory = DIRECTORY
         self.file = None
+        self.setup_ui()
+        self.start_watcher_directory()
+        self.show()
+
+    def setup_ui(self):
+        self.setWindowTitle("Who Parser")
+        widget = QWidget()
+        layout = QVBoxLayout()
+        self.editor = QPlainTextEdit()
+        self.clear_button = QPushButton("Clear Text")
+        self.clear_button.clicked.connect(self.clear_text)
+        layout.addWidget(self.editor)
+        layout.addWidget(self.clear_button)
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+
+    def start_watcher_directory(self):
         self.watch_directory_signals = WorkerSignals()
         self.watch_directory_signals.result.connect(self.file_compare)
         self.watch_directory_thread = Watch_Directory_Thread(
             self.directory, signals=self.watch_directory_signals)
         self.watch_directory_thread.start()
-
-        self.setWindowTitle("Who Parser")
-
-        widget = QWidget()
-        layout = QVBoxLayout()
-
-        self.editor = QPlainTextEdit()
-        self.clear_button = QPushButton("Clear Text")
-        self.clear_button.clicked.connect(self.clear_text)
-
-        layout.addWidget(self.editor)
-        layout.addWidget(self.clear_button)
-        widget.setLayout(layout)
-
-        self.setCentralWidget(widget)
-
-        self.show()
 
     def file_compare(self, file):
         if self.file != file:
