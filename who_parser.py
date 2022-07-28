@@ -148,10 +148,10 @@ class MainWindow(QMainWindow):
         self.start_watcher_directory()
 
     def setup_config(self):
-        '''
+        """
         checks for an existing config file and returns the EverQuest directory
         if no config file exists, then prompt user to select their directory and create a config file
-        '''
+        """
 
         config = ConfigParser()
         config_file = 'config.ini'
@@ -178,12 +178,16 @@ class MainWindow(QMainWindow):
 
         if not self.directory:
             # quit app if dialog canceled
+            print(self.directory)
             return None
 
         self.directory += '/Logs'
         # check if directory exists, if not, rerun function
         if not os.path.exists(self.directory):
+            self.directory = ''
             self.setup_config()
+            return
+
         # add directory to config and create config file
         config.add_section('default')
         config.set('default', 'directory', self.directory)
@@ -236,7 +240,6 @@ class MainWindow(QMainWindow):
         try:
             self.watch_directory_thread.terminate()
             self.file_stream_thread.terminate()
-
         except:
             print("no running threads")
 
