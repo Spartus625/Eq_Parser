@@ -1,10 +1,12 @@
 import sys
 import time
 import traceback
+import os
+from configparser import ConfigParser
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from PySide6.QtCore import QThread, Slot, Signal, QObject
-from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
 
 
 DIRECTORY = 'H:\Everquest\Logs'
@@ -69,11 +71,10 @@ class Thread(QThread):
         """
         # Retrieve args/kwargs here; and fire processing using them
         try:
-            print("start of thread")
+
             # watch directory
             result = self.fn(*self.args, **self.kwargs)
 
-            print("end of thread", result)
         except:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
@@ -89,9 +90,7 @@ class Watch_Directory_Thread(Thread):
 
     def watch_directory(self, signals=None):
         self.watcher = Watcher(FileOnModifiedHandler(signals), self.directory)
-        print(f"start watch on {self.directory}")
         res = self.watcher.run()
-        print("watcher stoped")
         return res
 
 
@@ -114,11 +113,11 @@ class File_Stream_Thread(Thread):
         super().__init__(self.log_lines, signals=signals, *args, **kwargs)
         self.current_file = current_file
         self.directory = DIRECTORY
-        self.signals = signals
 
-    def log_lines(self):
+    def log_lines(self, signals):
         self.logfile = open(self.directory + '\\' + self.current_file, 'r')
         loglines = self.logtail(self.logfile)
+        self.signals = signals
 
         for line in loglines:
             self.signals.result.emit(line)
@@ -138,11 +137,45 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.directory = DIRECTORY
+        # self.directory = DIRECTORY
         self.file = None
         self.setup_ui()
-        self.start_watcher_directory()
         self.show()
+        self.setup_config()
+        self.start_watcher_directory()
+
+    def setup_config(self):
+
+        self.directory = None
+        self.cwd = os.getcwd()
+        self.config_exists = os.path.exists(self.cwd+"\parseconfig.ini")
+        self.config = ConfigParser()
+        self.config_file = 'parseconfig.ini'
+
+        if self.config_exists:
+            self.config.read(self.config_file)
+            self.directory = self.config['default']['directory']
+        else:
+            button = QMessageBox.information(
+                self,
+                "Directory Not Selected",
+                "Click Ok to select your EverQuest Log Directory",
+                buttons=QMessageBox.Ok | QMessageBox.Cancel,
+            )
+            if button == QMessageBox.Ok:
+                self.directory = QFileDialog.getExistingDirectory(
+                    caption='Select your EverQuest Directory')
+                if self.directory == "":
+                    sys.exit()
+                self.directory += '/Logs'
+                if not os.path.exists(self.directory):
+                    self.setup_config()
+                self.config.add_section('default')
+                self.config.set('default', 'directory', self.directory)
+                with open(self.config_file, 'w') as configfile:
+                    self.config.write(configfile)
+            else:
+                sys.exit()
 
     def setup_ui(self):
         self.setWindowTitle("Who Parser")
@@ -184,8 +217,12 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         # events to trigger when app is closed out
-        self.watch_directory_thread.terminate()
-        self.file_stream_thread.terminate()
+        try:
+            self.watch_directory_thread.terminate()
+            self.file_stream_thread.terminate()
+
+        except:
+            print("no running threads")
 
     def clear_text(self):
         self.editor.setPlainText("")
