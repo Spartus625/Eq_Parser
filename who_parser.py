@@ -5,6 +5,7 @@ import os
 from configparser import ConfigParser
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from PySide6.QtGui import QTextCursor
 from PySide6.QtCore import QThread, Slot, Signal, QObject
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
 
@@ -116,7 +117,7 @@ class File_Stream_Thread(Thread):
 
     def log_lines(self, signals):
         self.logfile = open(self.directory + '\\' +
-                            self.current_file, encoding='ISO-8859-1', mode='r')
+                            self.current_file, encoding='utf-8', mode='r')
         loglines = self.logtail(self.logfile)
         self.signals = signals
 
@@ -226,7 +227,14 @@ class MainWindow(QMainWindow):
         new_line = line
         current_text = self.editor.toPlainText()
         updated_text = current_text + new_line
-        self.editor.setPlainText(updated_text)
+        # self.editor.setPlainText(updated_text)
+        self.editor.appendPlainText(updated_text)
+        # self.set_cursor_to_end()
+
+    def set_cursor_to_end(self):
+        end_cursor = self.editor.textCursor()
+        end_cursor.movePosition(QTextCursor.End)
+        self.editor.setTextCursor(end_cursor)
 
     def start_file_stream(self, new_file):
         self.file = new_file
