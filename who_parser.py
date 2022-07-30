@@ -115,7 +115,8 @@ class File_Stream_Thread(Thread):
         self.directory = DIRECTORY
 
     def log_lines(self, signals):
-        self.logfile = open(self.directory + '\\' + self.current_file, 'r')
+        self.logfile = open(self.directory + '\\' +
+                            self.current_file, encoding='ISO-8859-1', mode='r')
         loglines = self.logtail(self.logfile)
         self.signals = signals
 
