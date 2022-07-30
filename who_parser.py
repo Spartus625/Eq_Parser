@@ -5,7 +5,6 @@ import os
 from configparser import ConfigParser
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from PySide6.QtGui import QTextCursor
 from PySide6.QtCore import QThread, Slot, Signal, QObject
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
 
@@ -224,17 +223,8 @@ class MainWindow(QMainWindow):
             self.start_file_stream(self.file)
 
     def set_text(self, line):
-        new_line = line
-        current_text = self.editor.toPlainText()
-        updated_text = current_text + new_line
-        # self.editor.setPlainText(updated_text)
-        self.editor.appendPlainText(updated_text)
-        # self.set_cursor_to_end()
-
-    def set_cursor_to_end(self):
-        end_cursor = self.editor.textCursor()
-        end_cursor.movePosition(QTextCursor.End)
-        self.editor.setTextCursor(end_cursor)
+        new_line = line[:-1]
+        self.editor.appendPlainText(new_line)
 
     def start_file_stream(self, new_file):
         self.file = new_file
