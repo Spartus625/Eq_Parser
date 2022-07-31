@@ -9,9 +9,6 @@ from PySide6.QtCore import QThread, Slot, Signal, QObject
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
 
 
-DIRECTORY = 'H:\Everquest\Logs'
-
-
 class WorkerKilledException(Exception):
     pass
 
@@ -109,10 +106,10 @@ class FileOnModifiedHandler(FileSystemEventHandler):
 
 class File_Stream_Thread(Thread):
 
-    def __init__(self, current_file, signals, *args, **kwargs):
+    def __init__(self, directory, current_file, signals, *args, **kwargs):
         super().__init__(self.log_lines, signals=signals, *args, **kwargs)
         self.current_file = current_file
-        self.directory = DIRECTORY
+        self.directory = directory
 
     def log_lines(self, signals):
         self.logfile = open(self.directory + '\\' +
@@ -231,7 +228,7 @@ class MainWindow(QMainWindow):
         self.file_stream_signals = WorkerSignals()
         self.file_stream_signals.result.connect(self.set_text)
         self.file_stream_thread = File_Stream_Thread(
-            self.file, self.file_stream_signals)
+            self.directory, self.file, self.file_stream_signals)
         self.file_stream_thread.start()
 
     def closeEvent(self, event):
