@@ -1,16 +1,9 @@
 import sys
-import time
-import traceback
 import os
 from configparser import ConfigParser
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from PySide6.QtCore import QThread, Slot, Signal, QObject
+from PySide6.QtCore import Signal, QObject
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
-
-
-class WorkerKilledException(Exception):
-    pass
+from QThreads import Watch_Directory_Thread, File_Stream_Thread
 
 
 class WorkerSignals(QObject):
@@ -18,117 +11,6 @@ class WorkerSignals(QObject):
     finished = Signal()
     error = Signal(tuple)
     result = Signal(object)
-
-
-class Watcher:
-
-    def __init__(self, response_function, directory):
-        self.observer = Observer()
-        self.response_function = response_function
-        self.directory = directory
-
-    def run(self):
-        self.observer.schedule(self.response_function,
-                               self.directory, recursive=False)
-        self.observer.start()
-        try:
-            while self.observer.is_alive():
-                self.observer.join(1)
-
-        except:
-            self.observer.stop()
-            self.observer.join()
-            return 0
-        return 1
-
-    def stop(self):
-        if self.observer.is_alive():
-            self.observer.stop()
-            self.observer.join()
-            return 1
-        return 0
-
-
-class Thread(QThread):
-    """
-    Worker thread
-    """
-
-    def __init__(self, fn, *args, **kwargs):
-        super().__init__()
-        # Store constructor arguments (re-used for processing)
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-
-    @Slot()
-    def run(self):
-        """
-        Initialize the runner function with passed args, kwargs.
-        """
-        # Retrieve args/kwargs here; and fire processing using them
-        try:
-
-            # watch directory
-            result = self.fn(*self.args, **self.kwargs)
-
-        except:
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-
-
-class Watch_Directory_Thread(Thread):
-
-    def __init__(self, directory, signals=None, *args, **kwargs):
-        if not signals:
-            raise ValueError('signals must be passed')
-        super().__init__(self.watch_directory, signals=signals, *args, **kwargs)
-        self.directory = directory
-
-    def watch_directory(self, signals=None):
-        self.watcher = Watcher(FileOnModifiedHandler(signals), self.directory)
-        res = self.watcher.run()
-        return res
-
-
-class FileOnModifiedHandler(FileSystemEventHandler):
-
-    def __init__(self, signals):
-        self.signals = signals
-
-    def on_modified(self, event):
-        self.file_name = event.src_path.split('\\')[-1]
-        # print(f'file modified: {self.file_name}')
-        if self.signals and self.file_name != 'dbg.txt':
-            self.signals.result.emit(self.file_name)
-            # print(f'emitting file modified: {self.file_name}')
-
-
-class File_Stream_Thread(Thread):
-
-    def __init__(self, directory, current_file, signals, *args, **kwargs):
-        super().__init__(self.log_lines, signals=signals, *args, **kwargs)
-        self.current_file = current_file
-        self.directory = directory
-
-    def log_lines(self, signals):
-        self.logfile = open(self.directory + '\\' +
-                            self.current_file, encoding='utf-8', mode='r')
-        loglines = self.logtail(self.logfile)
-        self.signals = signals
-
-        for line in loglines:
-            self.signals.result.emit(line)
-
-    def logtail(self, logfile):
-        thefile = logfile
-        thefile.seek(0, 2)
-        while True:
-            line = thefile.readline()
-            if not line:
-                time.sleep(0.1)
-                continue
-            yield line
 
 
 class MainWindow(QMainWindow):
