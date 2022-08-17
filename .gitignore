@@ -1,2 +1,5 @@
 __pycache__/
 config.ini
+LogLines_old.py
+logsplitter.py
+*.txt

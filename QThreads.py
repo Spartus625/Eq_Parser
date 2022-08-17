@@ -1,8 +1,15 @@
 import time
 import sys
 import traceback
-from PySide6.QtCore import QThread, Slot
+from PySide6.QtCore import QThread, Slot, Signal, QObject
 from Watchers import Watcher, FileOnModifiedHandler
+
+
+class WorkerSignals(QObject):
+
+    finished = Signal()
+    error = Signal(tuple)
+    result = Signal(object)
 
 
 class Thread(QThread):

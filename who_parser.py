@@ -1,16 +1,9 @@
 import sys
 import os
 from configparser import ConfigParser
-from PySide6.QtCore import Signal, QObject
+from LogLines import parse_text
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
-from QThreads import Watch_Directory_Thread, File_Stream_Thread
-
-
-class WorkerSignals(QObject):
-
-    finished = Signal()
-    error = Signal(tuple)
-    result = Signal(object)
+from QThreads import Watch_Directory_Thread, File_Stream_Thread, WorkerSignals
 
 
 class MainWindow(QMainWindow):
@@ -46,7 +39,7 @@ class MainWindow(QMainWindow):
         button = QMessageBox.information(
             self,
             "Directory Not Selected",
-            "Click Ok to select your EverQuest Log Directory",
+            "Click Ok to select your EverQuest Directory",
             buttons=QMessageBox.Ok | QMessageBox.Cancel,
         )
         if button != QMessageBox.Ok:
@@ -101,17 +94,18 @@ class MainWindow(QMainWindow):
             self.file = file
             self.start_file_stream(self.file)
 
-    def set_text(self, line):
-        new_line = line[:-1]
-        self.editor.appendPlainText(new_line)
-
     def start_file_stream(self, new_file):
         self.file = new_file
         self.file_stream_signals = WorkerSignals()
-        self.file_stream_signals.result.connect(self.set_text)
+        self.file_stream_signals.result.connect(parse_text)
+        # self.file_stream_signals.result.connect(self.set_text)
         self.file_stream_thread = File_Stream_Thread(
             self.directory, self.file, self.file_stream_signals)
         self.file_stream_thread.start()
+
+    # def set_text(self, line):
+    #     new_line = line[:-1]
+    #     self.editor.appendPlainText(new_line)
 
     def closeEvent(self, event):
         # events to trigger when app is closed out
@@ -123,7 +117,6 @@ class MainWindow(QMainWindow):
 
     def clear_text(self):
         self.editor.setPlainText("")
-        self.start_file_stream()
 
 
 app = QApplication(sys.argv)
