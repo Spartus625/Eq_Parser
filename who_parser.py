@@ -1,7 +1,7 @@
 import sys
 import os
 from configparser import ConfigParser
-from LogLines import parse_text
+from LogLines import LogParse
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
 from QThreads import Watch_Directory_Thread, File_Stream_Thread, WorkerSignals
 
@@ -11,6 +11,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.file = None
+        self.parser = LogParse()
         self.setup_ui()
         self.show()
 
@@ -97,15 +98,18 @@ class MainWindow(QMainWindow):
     def start_file_stream(self, new_file):
         self.file = new_file
         self.file_stream_signals = WorkerSignals()
-        self.file_stream_signals.result.connect(parse_text)
-        # self.file_stream_signals.result.connect(self.set_text)
+        self.file_stream_signals.result.connect(self.parser.parse_text)
+        self.file_stream_signals.result.connect(self.set_editor_text)
         self.file_stream_thread = File_Stream_Thread(
             self.directory, self.file, self.file_stream_signals)
         self.file_stream_thread.start()
 
-    # def set_text(self, line):
-    #     new_line = line[:-1]
-    #     self.editor.appendPlainText(new_line)
+    def set_editor_text(self):
+        if self.parser.status == 'complete':
+            self.editor.setPlainText('')
+            # self.editor.appendPlainText(item)
+            self.parser.who_buffer = []
+            self.parser.status = 'idle'
 
     def closeEvent(self, event):
         # events to trigger when app is closed out
