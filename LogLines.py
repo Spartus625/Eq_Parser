@@ -23,7 +23,7 @@ class LogParse():
             r'^(?P<timestamp>\[[a-zA-Z\s]{8}[\d\s:]{16}\])\s(?P<content>.*)')
         self.who_pattern = re.compile(r'Players on EverQuest:')
         self.who_content_pattern = re.compile(
-            r'\[((?P<level>\d{1,2})\s(?P<class>\w+)|(?P<anon>ANONYMOUS))]\s(?P<player>\w+)\s(?P<race>\(.+\))?\s(?P<guild><.+>)?')
+            r'\[((?P<level>\d{1,2})\s(?P<class>\w+)|(?P<anon>ANONYMOUS))\]\s(?P<player>\w+)\s(?P<race>\(.+\))?\s?(?P<guild><.+>)?')
         self.zone_pattern = re.compile(
             r'There are \d+? players in (?P<zone>.+).')
         self.who_buffer = []
@@ -41,6 +41,7 @@ class LogParse():
 
         if self.status == "idle":
             if self.who_pattern.match(content):
+                self.who_buffer.append(content)
                 self.status = "who_processing"
         elif self.status == "who_processing":
             if content.startswith('There'):
@@ -51,7 +52,6 @@ class LogParse():
                 for key in self.players:
                     self.players[key]['zone'] = self.zone
                 self.who_buffer.append(content)
-                self.who_buffer.pop(0)
             else:
                 who_match = re.finditer(self.who_content_pattern, content)
                 for item in who_match:
@@ -62,7 +62,8 @@ class LogParse():
                         self.players[name]['level'] = item.group('level')
                         self.players[name]['class'] = item.group('class')
                         self.players[name]['race'] = item.group('race')
-                        self.players[name]['guild'] = item.group('guild')
+                        if item.group('guild'):
+                            self.players[name]['guild'] = item.group('guild')
                     else:
                         self.players[name]['level'] = item.group('anon')
                         self.players[name]['class'] = item.group('anon')

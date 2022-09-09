@@ -107,8 +107,29 @@ class MainWindow(QMainWindow):
     def set_editor_text(self):
         if self.parser.status == 'complete':
             self.editor.setPlainText('')
-            # self.editor.appendPlainText(item)
+            self.editor.appendPlainText(self.parser.who_buffer[0])
+            for key in self.parser.players:
+                level = self.parser.players[key]['level']
+                pclass = self.parser.players[key]['class']
+                race = self.parser.players[key]['race']
+                if 'guild' in self.parser.players[key]:
+                    guild = self.parser.players[key]['guild']
+                if level == 'ANONYMOUS':
+                    if 'guild' in self.parser.players[key]:
+                        self.editor.appendPlainText(f'[{level}] {key} {guild}')
+                    else:
+                        self.editor.appendPlainText(f'[{level}] {key}')
+
+                else:
+                    if 'guild' in self.parser.players[key]:
+                        self.editor.appendPlainText(
+                            f'[{level} {pclass}] {key} {race} {guild}')
+                    else:
+                        self.editor.appendPlainText(
+                            f'[{level} {pclass}] {key} {race}')
+            self.editor.appendPlainText(self.parser.who_buffer[1])
             self.parser.who_buffer = []
+            self.parser.players = {}
             self.parser.status = 'idle'
 
     def closeEvent(self, event):
