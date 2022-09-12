@@ -49,27 +49,39 @@ class LogParse():
                 zone = re.finditer(self.zone_pattern, content)
                 for item in zone:
                     self.zone = item.group('zone')
-                for key in self.players:
-                    self.players[key]['zone'] = self.zone
+                    for player in self.players:
+                        for timestamp in self.players[player]:
+                            self.players[player][timestamp]['zone'] = self.zone
+                self.who_buffer.append(content)
+            elif content.startswith('-'):
                 self.who_buffer.append(content)
             else:
                 who_match = re.finditer(self.who_content_pattern, content)
                 for item in who_match:
                     name = item.group('player')
                     self.players[name] = {}
-                    self.players[name]['dt'] = timestamp
-                    if item.group('level'):
-                        self.players[name]['level'] = item.group('level')
-                        self.players[name]['class'] = item.group('class')
-                        self.players[name]['race'] = item.group('race')
-                        if item.group('guild'):
-                            self.players[name]['guild'] = item.group('guild')
-                    else:
-                        self.players[name]['level'] = item.group('anon')
-                        self.players[name]['class'] = item.group('anon')
-                        self.players[name]['race'] = item.group('anon')
-                        if item.group('guild'):
-                            self.players[name]['guild'] = item.group('guild')
+                    self.players[name][timestamp] = {}
+
+                if item.group('level'):
+                    self.players[name][timestamp]['level'] = item.group(
+                        'level')
+                    self.players[name][timestamp]['class'] = item.group(
+                        'class')
+                    self.players[name][timestamp]['race'] = item.group(
+                        'race')
+                    if item.group('guild'):
+                        self.players[name][timestamp]['guild'] = item.group(
+                            'guild')
+                else:
+                    self.players[name][timestamp]['level'] = item.group(
+                        'anon')
+                    self.players[name][timestamp]['class'] = item.group(
+                        'anon')
+                    self.players[name][timestamp]['race'] = item.group(
+                        'anon')
+                    if item.group('guild'):
+                        self.players[name][timestamp]['guild'] = item.group(
+                            'guild')
 
 
 if __name__ == '__main__':

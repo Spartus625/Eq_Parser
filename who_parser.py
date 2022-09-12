@@ -1,5 +1,7 @@
+from genericpath import exists
 import sys
 import os
+import json
 from configparser import ConfigParser
 from LogLines import LogParse
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
@@ -13,6 +15,7 @@ class MainWindow(QMainWindow):
         self.file = None
         self.parser = LogParse()
         self.setup_ui()
+        self.setMinimumSize(400, 400)
         self.show()
 
         self.directory = ''
@@ -106,28 +109,42 @@ class MainWindow(QMainWindow):
 
     def set_editor_text(self):
         if self.parser.status == 'complete':
+
             self.editor.setPlainText('')
             self.editor.appendPlainText(self.parser.who_buffer[0])
-            for key in self.parser.players:
-                level = self.parser.players[key]['level']
-                pclass = self.parser.players[key]['class']
-                race = self.parser.players[key]['race']
-                if 'guild' in self.parser.players[key]:
-                    guild = self.parser.players[key]['guild']
-                if level == 'ANONYMOUS':
-                    if 'guild' in self.parser.players[key]:
-                        self.editor.appendPlainText(f'[{level}] {key} {guild}')
-                    else:
-                        self.editor.appendPlainText(f'[{level}] {key}')
-
-                else:
-                    if 'guild' in self.parser.players[key]:
-                        self.editor.appendPlainText(
-                            f'[{level} {pclass}] {key} {race} {guild}')
-                    else:
-                        self.editor.appendPlainText(
-                            f'[{level} {pclass}] {key} {race}')
             self.editor.appendPlainText(self.parser.who_buffer[1])
+
+            for player in self.parser.players:
+                for timestamp in self.parser.players[player]:
+
+                    level = self.parser.players[player][timestamp]['level']
+                    pclass = self.parser.players[player][timestamp]['class']
+                    race = self.parser.players[player][timestamp]['race']
+                    if 'guild' in self.parser.players[player][timestamp]:
+                        guild = self.parser.players[player][timestamp]['guild']
+
+                    if level == 'ANONYMOUS':
+                        if 'guild' in self.parser.players[player][timestamp]:
+                            self.editor.appendPlainText(
+                                f'[{level}] {player} {guild}')
+                        else:
+                            self.editor.appendPlainText(f'[{level}] {player}')
+                    else:
+                        if 'guild' in self.parser.players[player][timestamp]:
+                            self.editor.appendPlainText(
+                                f'[{level} {pclass}] {player} {race} {guild}')
+                        else:
+                            self.editor.appendPlainText(
+                                f'[{level} {pclass}] {player} {race}')
+
+            self.editor.appendPlainText(self.parser.who_buffer[2])
+
+            if exists('players.json'):
+                json.dump(self.parser.players,
+                          open('players.json', 'a'))
+            else:
+                json.dump(self.parser.players,
+                          open('players.json', 'w'))
             self.parser.who_buffer = []
             self.parser.players = {}
             self.parser.status = 'idle'
@@ -142,6 +159,10 @@ class MainWindow(QMainWindow):
 
     def clear_text(self):
         self.editor.setPlainText("")
+
+    def historical_player_data(self):
+        if exists('player_history.json'):
+            json.load('player_history.json', open())
 
 
 app = QApplication(sys.argv)
