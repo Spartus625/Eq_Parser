@@ -1,4 +1,3 @@
-from genericpath import exists
 import sys
 import os
 import json
