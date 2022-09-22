@@ -3,4 +3,5 @@ config.ini
 logsplitter.py
 test.py
 players.json
+historical_players.json
 *.txt
