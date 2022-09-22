@@ -119,28 +119,33 @@ class MainWindow(QMainWindow):
                     level = item['level']
                     pclass = item['class']
                     race = item['race']
+                    if 'zone' in item:
+                        zone = item['zone']
+                    else:
+                        zone = 'unknown'
                     if 'guild' in item:
                         guild = item['guild']
 
                     if level == 'ANONYMOUS':
                         if 'guild' in item:
                             self.editor.appendPlainText(
-                                f'[{level}] {player} {guild}')
+                                f'[{level}] {player} {guild} zone: {zone}')
                         else:
-                            self.editor.appendPlainText(f'[{level}] {player}')
+                            self.editor.appendPlainText(
+                                f'[{level}] {player} zone: {zone}')
                     else:
                         if 'guild' in item:
                             self.editor.appendPlainText(
-                                f'[{level} {pclass}] {player} {race} {guild}')
+                                f'[{level} {pclass}] {player} {race} {guild} zone: {zone}')
                         else:
                             self.editor.appendPlainText(
-                                f'[{level} {pclass}] {player} {race}')
+                                f'[{level} {pclass}] {player} {race} zone: {zone}')
 
             self.editor.appendPlainText(self.parser.who_buffer[2])
 
             if not os.path.exists('players.json'):
-                json.dump(self.parser.players, open(
-                    'players.json', 'w'), indent=4)
+                with open('players.json', 'w') as f:
+                    json.dump(self.parser.players, f, indent=4)
 
             self.parser.who_buffer = []
             self.parser.players = {}
