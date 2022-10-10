@@ -5,6 +5,7 @@ import json
 from configparser import ConfigParser
 from LogLines import LogParse
 from PySide6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit, QVBoxLayout, QPushButton, QWidget, QFileDialog, QMessageBox
+from PySide6.QtGui import QFont
 from QThreads import Watch_Directory_Thread, File_Stream_Thread, WorkerSignals
 
 
@@ -15,7 +16,7 @@ class MainWindow(QMainWindow):
         self.file = None
         self.parser = LogParse()
         self.setup_ui()
-        self.historical_player_data()
+        self.historical = self.historical_player_data()
         self.setMinimumSize(400, 400)
         self.show()
 
@@ -80,6 +81,9 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout()
         self.editor = QPlainTextEdit()
+        font = QFont()
+        font.setFamily('Courier')
+        self.editor.setFont(font)
         self.clear_button = QPushButton("Clear Text")
         self.clear_button.clicked.connect(self.clear_text)
         layout.addWidget(self.editor)
@@ -111,10 +115,22 @@ class MainWindow(QMainWindow):
     def set_editor_text(self):
         if self.parser.status == 'complete':
             self.editor.setPlainText('')
-            self.editor.appendPlainText(self.parser.who_buffer[0])
-            self.editor.appendPlainText(self.parser.who_buffer[1])
+            self.editor.appendPlainText(
+                f"{'level' :^5} {'class' :<13} {'player' :<15} {'race' :<15} {'guild' :<32} {'zone' :<24} {'seen' :^4}")
+            self.editor.appendPlainText('-'*113)
+
+            # self.parser.players = dict(sorted(
+            #     self.parser.players.items(), key=lambda x: x[1][0]['level'], reverse=True))
+            self.parser.players = dict(sorted(
+                self.parser.players.items()))
 
             for player in self.parser.players:
+                if player in self.historical:
+                    for item in self.parser.players[player]:
+                        if item not in self.historical[player]:
+                            self.historical[player].append(item)
+                            seen = len(self.historical[player])
+
                 for item in self.parser.players[player]:
                     level = item['level']
                     pclass = item['class']
@@ -129,23 +145,20 @@ class MainWindow(QMainWindow):
                     if level == 'ANONYMOUS':
                         if 'guild' in item:
                             self.editor.appendPlainText(
-                                f'[{level}] {player} {guild} zone: {zone}')
+                                f'{level :<19} {player :<31} {guild :<32} {zone :<24} {seen :<4}')
                         else:
                             self.editor.appendPlainText(
-                                f'[{level}] {player} zone: {zone}')
+                                f'{level :<19} {player :<64} {zone :<24} {seen :<4}')
                     else:
                         if 'guild' in item:
                             self.editor.appendPlainText(
-                                f'[{level} {pclass}] {player} {race} {guild} zone: {zone}')
+                                f'{level :<5} {pclass :<13} {player :<15} {race :<15} {guild :<32} {zone :<24} {seen :<4}')
                         else:
                             self.editor.appendPlainText(
-                                f'[{level} {pclass}] {player} {race} zone: {zone}')
+                                f'{level :5} {pclass :<13} {player :<15} {race :<48} {zone :<24} {seen :<4}')
 
+            self.editor.appendPlainText('-'*113)
             self.editor.appendPlainText(self.parser.who_buffer[2])
-
-            if not os.path.exists('players.json'):
-                with open('players.json', 'w') as f:
-                    json.dump(self.parser.players, f, indent=4)
 
             self.parser.who_buffer = []
             self.parser.players = {}
@@ -156,6 +169,12 @@ class MainWindow(QMainWindow):
         try:
             self.watch_directory_thread.terminate()
             self.file_stream_thread.terminate()
+
+            for player in self.historical:
+                self.historical[player] = sorted(self.historical[player],
+                                                 key=lambda x: x['timestamp'], reverse=True)
+            with open('historical_players.json', 'w') as f:
+                json.dump(self.historical, f, indent=4)
         except:
             print("no running threads")
 
@@ -163,8 +182,13 @@ class MainWindow(QMainWindow):
         self.editor.setPlainText("")
 
     def historical_player_data(self):
-        if os.path.exists('player_history.json'):
-            json.load('player_history.json', open())
+        if os.path.exists('historical_players.json'):
+            with open('historical_players.json') as f:
+                historical = json.load(f)
+            return historical
+        else:
+            historical = {}
+            return historical
 
 
 app = QApplication(sys.argv)

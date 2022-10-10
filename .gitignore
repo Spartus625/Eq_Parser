@@ -1,7 +1,7 @@
 __pycache__/
 config.ini
 logsplitter.py
-test.py
+guild length.py
 players.json
 historical_players.json
 *.txt

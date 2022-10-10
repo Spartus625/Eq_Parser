@@ -74,10 +74,10 @@ class LogParse():
                     player_data['class'] = item.group(
                         'class')
                     player_data['race'] = item.group(
-                        'race')
+                        'race')[1:-1]
                     if item.group('guild'):
                         player_data['guild'] = item.group(
-                            'guild')
+                            'guild')[1:-1]
                     if item.group('zone'):
                         player_data['zone'] = item.group('zone')
                     else:
@@ -93,7 +93,7 @@ class LogParse():
                         'anon')
                     if item.group('guild'):
                         player_data['guild'] = item.group(
-                            'guild')
+                            'guild')[1:-1]
                     if item.group('zone'):
                         player_data['zone'] = item.group('zone')
                     else:
@@ -102,22 +102,12 @@ class LogParse():
                     self.players[name] = list_data
 
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    count = 0
-    if os.path.exists('historical_players.json'):
-        print('opening historical data')
-        with open('historical_players.json') as f:
-            historical = json.load(f)
-    else:
-        print('no historcal player data found, creating historical data file')
-        historical = {}
+def manual_parse(logfile, parser, historical):
+    log_to_parse = logfile
+    parser = parser
+    historical = historical
 
-    log_to_parse = QFileDialog.getOpenFileName(caption='Select Log to Parse')
-
-    with open(log_to_parse[0], encoding='utf-8', mode='r') as log:
-        start = time.perf_counter()
-        parser = LogParse()
+    with open(log_to_parse, encoding='latin-1', mode='r') as log:
         for line in log:
             parser.parse_text(line)
             if parser.status == 'complete':
@@ -130,15 +120,58 @@ if __name__ == '__main__':
                                 seen = len(historical[player])
                                 print(
                                     f"found a new log entry for {player}, times seen:{seen}")
-                                count += 1
                     else:
                         historical[player] = parser.players[player]
                         print(
                             f'first time {player} has been seen, adding to historical data')
+                parser.players = {}
+                parser.who_buffer = []
+
     for player in historical:
-        sorted(historical[player], key=lambda x: x['timestamp'], reverse=True)
+        historical[player] = sorted(historical[player],
+                                    key=lambda x: x['timestamp'], reverse=True)
     with open('historical_players.json', 'w') as f:
         json.dump(historical, f, indent=4)
-        print(count)
-        print(f"Completed Execution in {time.perf_counter() - start} seconds")
+    return historical
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    total_players = []
+    total_new_players = []
+    parser = LogParse()
+    if os.path.exists('historical_players.json'):
+        print('opening historical data')
+        with open('historical_players.json') as f:
+            historical = json.load(f)
+            for player in historical:
+                total_players.append(player)
+                count_total_players = len(total_players)
+            print(f'{count_total_players} players in historical data')
+    else:
+        print('no historcal player data found, creating historical data file')
+        historical = {}
+
+    x = input('Enter 1 to Parse a file, Enter 2 to Parse a Folder: ')
+
+    if x == '1':
+        log_to_parse = QFileDialog.getOpenFileName(
+            caption='Select Log to Parse')
+        log_to_parse = log_to_parse[0]
+        start = time.perf_counter()
+        manual_parse(logfile=log_to_parse, parser=parser,
+                     historical=historical)
+    else:
+        dir_to_parse = QFileDialog.getExistingDirectory(
+            caption='Select Folder to Parse', options=QFileDialog.Option.ShowDirsOnly)
+        logs_to_parse = os.listdir(dir_to_parse)
+        start = time.perf_counter()
+        for item in logs_to_parse:
+            if item[:6] == 'eqlog_':
+                file = dir_to_parse + '/' + item
+                print(f'parsing: {item}')
+                historical = manual_parse(
+                    logfile=file, parser=parser, historical=historical)
+    print(
+        f"Completed Execution in {time.perf_counter() - start} seconds")
     app.quit()
